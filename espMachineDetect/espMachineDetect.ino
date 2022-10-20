@@ -31,9 +31,9 @@ bool detectFlag;
 // timer interrupt every 1 second
 void time1sec()
 {
-  if (digitalRead(SENSOR)) {
+  if (!digitalRead(SENSOR)) {
     detectCount++;
-Serial.println(detectCount);
+    Serial.println(detectCount);
     if (detectCount >= DETECTTIME) {
       detectFlag = 1;
     }
@@ -72,12 +72,13 @@ void loop()
   WebServer server(80);
   MDNS.update();
 
-  if (!digitalRead(SENSOR)) {
+  if (digitalRead(SENSOR)) {
     detectCount = 0;
   }
 
-  if(detectFlag){
-    detectFlag=0;
+  if (detectFlag) {
+    detectFlag = 0;
+    detectCount = 0;
     workingCount++;
     Serial.println("count:" + String(workingCount));
   }
