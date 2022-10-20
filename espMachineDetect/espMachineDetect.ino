@@ -36,7 +36,7 @@ void time1sec()
       detectCount++;
 
     Serial.println(detectCount);
-    
+
     if (detectCount >= DETECTTIME) {
       detectFlag = 1;
     }
@@ -55,6 +55,7 @@ void setup()
   timestamp.attach(1, time1sec);
 
   // -- Initializing the configuration.
+  iotWebConf.setStatusPin(D4);
   iotWebConf.init();
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
 
@@ -104,7 +105,7 @@ void handleRoot()
   }
   String s = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
   s += "<title>ICE Machine Count</title></head><body>";
-  s+= "<div><h3>Count:" + String(workingCount) + "</h3></div>";
+  s += "<div><h3>Count:" + String(workingCount) + "</h3></div>";
   s += "Go to <a href='config'>configure page</a> to change settings.";
   s += "</body></html>\n";
 
