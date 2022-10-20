@@ -4,7 +4,7 @@
 #include <Ticker.h>
 
 #define SENSOR D6
-#define DETECTTIME 30
+#define DETECTTIME 10
 
 // -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
 const char thingName[] = "icemachine";
@@ -26,14 +26,17 @@ IotWebConf iotWebConf(thingName, &dnsServer, &server, wifiInitialApPassword);
 
 uint32_t workingCount;
 uint8_t detectCount;
-bool detectFlag;
+bool detectFlag, releaseFlag;
 
 // timer interrupt every 1 second
 void time1sec()
 {
   if (!digitalRead(SENSOR)) {
-    detectCount++;
+    if (!releaseFlag)
+      detectCount++;
+
     Serial.println(detectCount);
+    
     if (detectCount >= DETECTTIME) {
       detectFlag = 1;
     }
@@ -74,13 +77,17 @@ void loop()
 
   if (digitalRead(SENSOR)) {
     detectCount = 0;
+    releaseFlag = 0;
   }
 
   if (detectFlag) {
-    detectFlag = 0;
-    detectCount = 0;
-    workingCount++;
-    Serial.println("count:" + String(workingCount));
+    if (!releaseFlag) {
+      releaseFlag = 1;
+      detectFlag = 0;
+      detectCount = 0;
+      workingCount++;
+      Serial.println("count:" + String(workingCount));
+    }
   }
 }
 
@@ -95,8 +102,9 @@ void handleRoot()
     // -- Captive portal request were already served.
     return;
   }
-  String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
-  s += "<title>IotWebConf 01 Minimal</title></head><body>";
+  String s = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
+  s += "<title>ICE Machine Count</title></head><body>";
+  s+= "<div><h3>Count:" + String(workingCount) + "</h3></div>";
   s += "Go to <a href='config'>configure page</a> to change settings.";
   s += "</body></html>\n";
 
