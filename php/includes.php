@@ -27,7 +27,6 @@ class Database
             $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             return $db;
-
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
@@ -36,21 +35,23 @@ class Database
 }
 
 
-class Count{
+class Count
+{
     public $countNumber;
+    public $sensorid;
     public $time;
 
     public function create($conn)
     {
 
-        $sql = "INSERT INTO count (time)
-                VALUES(:time)";
+        $sql = "INSERT INTO count (sensorid,time)
+                VALUES(:sensorid, :time)";
 
         $stmt = $conn->prepare($sql);
 
+        $stmt->bindValue(':sensorid', $this->sensorid, PDO::PARAM_INT);
         $stmt->bindValue(':time', $this->time, PDO::PARAM_STR);
 
         return $stmt->execute();
     }
-
 }
