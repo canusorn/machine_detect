@@ -14,5 +14,5 @@
 
 
 
-# ไลบรารี่สำหรับ ESP8266
+# ไลบรารี่เพิ่มเติมสำหรับ ESP8266
 - https://github.com/canusorn/IotWebConf-iotbundle
