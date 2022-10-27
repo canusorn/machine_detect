@@ -1,17 +1,18 @@
 #include <IotWebConf.h>
+#include <IotWebConfUsing.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <Ticker.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
+#include <EEPROM.h>
 
 #define SENSOR D6
 #define DETECTTIME 10
 
 // ip ของเครือง pc
- String serverIP = "192.168.1.210";
-//String serverIP = "192.168.137.1";
+// String serverIP = "192.168.1.210";
 
 // -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
 const char thingName[] = "icemachine";
@@ -29,7 +30,17 @@ DNSServer dnsServer;
 WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
 
+#define STRING_LEN 128
+#define NUMBER_LEN 32
+
+char sensorIdParamValue[NUMBER_LEN];
+char ipParamValue[STRING_LEN];
+
 IotWebConf iotWebConf(thingName, &dnsServer, &server, wifiInitialApPassword);
+
+IotWebConfParameterGroup group1 = IotWebConfParameterGroup("group1", "อื่นๆ");
+IotWebConfTextParameter ipParam = IotWebConfTextParameter("IP Address", "ipParam", ipParamValue, STRING_LEN, "192.168.1.210");
+IotWebConfNumberParameter sensorIdParam = IotWebConfNumberParameter("Sensor ID", "sensorIdParam", sensorIdParamValue, NUMBER_LEN, "1");
 
 uint32_t workingCount;
 uint8_t detectCount;
@@ -61,14 +72,20 @@ void setup()
   // timer interrupt every 1 sec
   timestamp.attach(1, time1sec);
 
+  group1.addItem(&sensorIdParam);
+  group1.addItem(&ipParam);
+
   // -- Initializing the configuration.
   iotWebConf.setStatusPin(D4);
+  iotWebConf.addParameterGroup(&group1);
   iotWebConf.init();
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
 
   // -- Set up required URL handlers on the web server.
   server.on("/", handleRoot);
   server.on("/config", [] { iotWebConf.handleConfig(); });
+  server.on("/cleareeprom", clearEEPROM);
+  server.on("/reboot", reboot);
   server.onNotFound([]() {
     iotWebConf.handleNotFound();
   });
@@ -120,7 +137,11 @@ void handleRoot()
   }
   String s = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
   s += "<title>ICE Machine Count</title></head><body>";
-  s += "<div><h3>Count:" + String(workingCount) + "</h3></div>";
+  s += "<div><h4>Count:" + String(workingCount) + "</h4></div>";
+  s += "<div><h4>SensorID:" + String(sensorIdParamValue) + "</h4></div>";
+  s += "<div><h4>Server IP Address:";
+  s += ipParamValue;
+  s += "</h4></div>";
   s += "Go to <a href='config'>configure page</a> to change settings.";
   s += "</body></html>\n";
 
@@ -143,7 +164,7 @@ bool httpGet() {
   HTTPClient http;
 
   Serial.print("[HTTP] begin...\n");
-  if (http.begin(client, "http://" + serverIP + "/get.php")) {  // HTTP
+  if (http.begin(client, "http://" + String(ipParamValue) + "/get.php?id=" + String(sensorIdParamValue))) {  // HTTP
 
     Serial.print("[HTTP] GET...\n");
     // start connection and send HTTP header
@@ -170,4 +191,26 @@ bool httpGet() {
   }
 
   return result;
+}
+
+void clearEEPROM()
+{
+  EEPROM.begin(512);
+  // write a 0 to all 512 bytes of the EEPROM
+  for (int i = 0; i < 512; i++)
+  {
+    EEPROM.write(i, 0);
+  }
+
+  EEPROM.end();
+  server.send(200, "text/plain", "Clear all data\nrebooting");
+  delay(1000);
+  ESP.restart();
+}
+
+void reboot()
+{
+  server.send(200, "text/plain", "rebooting");
+  delay(1000);
+  ESP.restart();
 }
