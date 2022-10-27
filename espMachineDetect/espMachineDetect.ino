@@ -2,9 +2,16 @@
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266mDNS.h>
 #include <Ticker.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
 
 #define SENSOR D6
 #define DETECTTIME 10
+
+// ip ของเครือง pc
+ String serverIP = "192.168.1.210";
+//String serverIP = "192.168.137.1";
 
 // -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
 const char thingName[] = "icemachine";
@@ -32,7 +39,7 @@ bool detectFlag, releaseFlag;
 void time1sec()
 {
   if (!digitalRead(SENSOR)) {
-    if (!releaseFlag)
+    if (!releaseFlag && detectCount < DETECTTIME)
       detectCount++;
 
     Serial.println(detectCount);
@@ -49,7 +56,7 @@ void setup()
   Serial.println();
   Serial.println("Starting up...");
 
-  pinMode(SENSOR, INPUT);
+  pinMode(SENSOR, INPUT_PULLUP);
 
   // timer interrupt every 1 sec
   timestamp.attach(1, time1sec);
@@ -82,6 +89,14 @@ void loop()
   }
 
   if (detectFlag) {
+    if (WiFi.status() != WL_CONNECTED) {
+      //      Serial.println("wifi disconnect");
+      return;
+    }
+    if (!httpGet()) {
+      //      Serial.println("request failed");
+      return;
+    }
     if (!releaseFlag) {
       releaseFlag = 1;
       detectFlag = 0;
@@ -120,4 +135,39 @@ void wifiConnected()
 
   Serial.printf("Ready! Open http://%s.local in your browser\n", String(iotWebConf.getThingName()));
 
+}
+
+bool httpGet() {
+  bool result = false;
+  WiFiClient client;
+  HTTPClient http;
+
+  Serial.print("[HTTP] begin...\n");
+  if (http.begin(client, "http://" + serverIP + "/get.php")) {  // HTTP
+
+    Serial.print("[HTTP] GET...\n");
+    // start connection and send HTTP header
+    int httpCode = http.GET();
+
+    // httpCode will be negative on error
+    if (httpCode > 0) {
+      // HTTP header has been send and Server response header has been handled
+      Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+      // file found at server
+      if (httpCode == HTTP_CODE_OK) {
+        String payload = http.getString();
+        Serial.println(payload);
+        result = true;
+      }
+    } else {
+      Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+
+    http.end();
+  } else {
+    Serial.printf("[HTTP} Unable to connect\n");
+  }
+
+  return result;
 }
