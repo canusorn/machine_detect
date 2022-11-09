@@ -78,6 +78,12 @@ void setup()
   // -- Initializing the configuration.
   iotWebConf.setStatusPin(D4);
   iotWebConf.addParameterGroup(&group1);
+
+  // -- Define how to handle updateServer calls.
+  iotWebConf.setupUpdateServer(
+    [](const char* updatePath) { httpUpdater.setup(&server, updatePath); },
+    [](const char* userName, char* password) { httpUpdater.updateCredentials(userName, password); });
+  
   iotWebConf.init();
   iotWebConf.setWifiConnectionCallback(&wifiConnected);
 
