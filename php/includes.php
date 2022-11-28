@@ -18,8 +18,9 @@ class Database
         $db_name = "icemachine";
         $db_user = "iotadmin";
         $db_pass = "ZSE@iotb";
+        $db_port = 33600;
 
-        $dsn = 'mysql:host=' . $db_host . ';dbname=' . $db_name . ';charset=utf8';
+        $dsn = 'mysql:host=' . $db_host . ';dbname=' . $db_name . ';port=' . $db_port . ';charset=utf8';
 
         try {
 
